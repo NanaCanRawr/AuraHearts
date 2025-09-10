@@ -1,72 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AuraHearts – Samu & Nana: Pixel Souls</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura Hearts - Samu Test</title>
   <style>
-    body {
-      margin: 0;
-      background-color: #111;
-    }
     canvas {
+      border: 2px solid black;
+      background: #1a1a2e;
       display: block;
-      margin: auto;
-      background-color: #222;
-      border: 2px solid #fff;
+      margin: 20px auto;
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="640" height="360"></canvas>
+  <canvas id="gameCanvas" width="512" height="384"></canvas>
+
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
-    const samu = {
-      x: 50,
-      y: 260,
-      width: 32,
-      height: 32,
-      color: "#00f",
-      speed: 2,
-    };
+    // Load Samu sprite sheet
+    const samuImage = new Image();
+    samuImage.src = "samu_walk.png"; // replace with your exported Piskel sprite sheet filename
 
-    const keys = {
-      left: false,
-      right: false,
-      up: false,
-      down: false,
-    };
+    // Sprite sheet settings
+    const frameWidth = 32;   // width of one frame in your sprite sheet
+    const frameHeight = 32;  // height of one frame
+    const numFrames = 4;     // number of frames in the walking cycle
+    let currentFrame = 0;
 
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowLeft") keys.left = true;
-      if (e.key === "ArrowRight") keys.right = true;
-      if (e.key === "ArrowUp") keys.up = true;
-      if (e.key === "ArrowDown") keys.down = true;
-    });
-
-    document.addEventListener("keyup", (e) => {
-      if (e.key === "ArrowLeft") keys.left = false;
-      if (e.key === "ArrowRight") keys.right = false;
-      if (e.key === "ArrowUp") keys.up = false;
-      if (e.key === "ArrowDown") keys.down = false;
-    });
+    let samuX = 50;
+    let samuY = 200;
+    let frameCounter = 0;
 
     function update() {
-      if (keys.left) samu.x -= samu.speed;
-      if (keys.right) samu.x += samu.speed;
-      if (keys.up) samu.y -= samu.speed;
-      if (keys.down) samu.y += samu.speed;
+      frameCounter++;
+      if (frameCounter % 10 === 0) { // slower animation speed
+        currentFrame = (currentFrame + 1) % numFrames;
+      }
+      samuX += 1; // move to the right
     }
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Draw Samu
-      ctx.fillStyle = samu.color;
-      ctx.fillRect(samu.x, samu.y, samu.width, samu.height);
+      ctx.drawImage(
+        samuImage,
+        currentFrame * frameWidth, 0, frameWidth, frameHeight,
+        samuX, samuY, frameWidth * 2, frameHeight * 2 // drawn bigger
+      );
     }
 
     function gameLoop() {
@@ -75,7 +57,9 @@
       requestAnimationFrame(gameLoop);
     }
 
-    gameLoop();
+    samuImage.onload = () => {
+      gameLoop();
+    };
   </script>
 </body>
 </html>

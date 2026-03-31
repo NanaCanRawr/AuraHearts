@@ -7,149 +7,84 @@ let energy = 100;
 let lovePoints = 0;
 
 // Player & NPC Setup
-const player = { x: 400, y: 300, speed: 4, width: 32, height: 32, color: "#8d4e2a" };
+const player = { x: 400, y: 400, speed: 4, width: 32, height: 32, color: "#8d4e2a" };
 const girl = { x: 0, y: 0, active: false, width: 24, height: 24, sparkles: [] };
 let critics = [];
-
-// Button Config
 const heartBtn = { x: 20, y: 20, size: 50, visible: false };
 
 // --- 1. DRAWING FUNCTIONS ---
 
-function drawHeartButton() {
-    if (energy >= 25 && energy <= 45 && !girl.active) {
-        heartBtn.visible = true;
-        // Draw Button Background
-        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-        ctx.fillRect(heartBtn.x, heartBtn.y, heartBtn.size, heartBtn.size);
-        
-        // Pixel Heart Logo
-        ctx.fillStyle = "#ff4081";
-        // Simple pixel heart shape
-        ctx.fillRect(heartBtn.x + 10, heartBtn.y + 15, 10, 10);
-        ctx.fillRect(heartBtn.x + 30, heartBtn.y + 15, 10, 10);
-        ctx.fillRect(heartBtn.x + 10, heartBtn.y + 25, 30, 10);
-        ctx.fillRect(heartBtn.x + 15, heartBtn.y + 35, 20, 10);
-        ctx.fillRect(heartBtn.x + 20, heartBtn.y + 40, 10, 5);
-        
-        ctx.fillStyle = "white";
-        ctx.font = "10px 'Courier New'";
-        ctx.fillText("SUMMON", heartBtn.x + 25, heartBtn.y + 60);
-    } else {
-        heartBtn.visible = false;
+function drawRoom() {
+    ctx.fillStyle = "#5d3a37"; ctx.fillRect(0, 0, canvas.width, canvas.height); // Floor
+    
+    // THE DOOR (Visual)
+    ctx.fillStyle = "#3e2723"; ctx.fillRect(canvas.width / 2 - 30, 0, 60, 80); // Door frame
+    ctx.fillStyle = "#6d4c41"; ctx.fillRect(canvas.width / 2 - 25, 5, 50, 75); // Door wood
+    ctx.fillStyle = "#ffd54f"; ctx.beginPath(); ctx.arc(canvas.width / 2 + 15, 45, 4, 0, Math.PI*2); ctx.fill(); // Handle
+
+    // Bed & Table
+    ctx.fillStyle = "#3e2723"; ctx.fillRect(50, 100, 80, 140); // Bed
+    ctx.fillStyle = "#8d6e63"; ctx.fillRect(canvas.width - 200, 200, 120, 80); // Table
+
+    // --- INTERACTION BOXES ---
+    ctx.font = "14px 'Courier New'";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "white";
+
+    // Near Door
+    if (Math.abs(player.x - canvas.width/2) < 60 && player.y < 120) {
+        drawSpeechBubble(canvas.width/2, 100, "Click E to Open Door");
     }
-}
-
-function drawStreet() {
-    ctx.fillStyle = "#333"; // Darker street
-    ctx.fillRect(0, 0, canvas.width, canvas.height); 
-
-    // Draw Girl & Her Magical Trail
-    if (girl.active) {
-        girl.sparkles.forEach((s, i) => {
-            ctx.fillStyle = `rgba(255, 255, 255, ${s.life})`;
-            ctx.fillRect(s.x, s.y, 4, 4);
-            s.x += s.vx; s.y += s.vy; // Sparkles drift
-            s.life -= 0.01;
-            if (s.life <= 0) girl.sparkles.splice(i, 1);
-        });
-        
-        ctx.fillStyle = "#f48fb1"; // Pink dress
-        ctx.fillRect(girl.x, girl.y, girl.width, girl.height);
-        ctx.fillStyle = "#fff176"; // Sparkly hair
-        ctx.fillRect(girl.x, girl.y, girl.width, 8);
-        
-        // Healing effect aura
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-        ctx.beginPath();
-        ctx.arc(girl.x + 12, girl.y + 12, 30, 0, Math.PI * 2);
-        ctx.stroke();
+    // Near Table
+    if (Math.hypot(player.x - (canvas.width - 140), player.y - 240) < 80) {
+        drawSpeechBubble(canvas.width - 140, 180, "Click E to Study");
+    }
+    // Near Bed
+    if (Math.hypot(player.x - 90, player.y - 170) < 80) {
+        drawSpeechBubble(90, 80, "Click E to Rest");
     }
 
-    // Draw Critics
-    critics.forEach(c => {
-        ctx.fillStyle = "rgba(0,0,0,0.8)";
-        ctx.fillRect(c.x, c.y, 32, 32);
-        ctx.fillStyle = "#ff5252";
-        ctx.font = "12px Arial";
-        ctx.fillText("IGNORE HIM!", c.x, c.y - 10);
-    });
-
-    drawEntity(player);
-    drawHeartButton();
     drawHUD();
+    drawEntity(player);
 }
 
-// --- 2. LOGIC & UPDATES ---
+function drawSpeechBubble(x, y, text) {
+    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    let metrics = ctx.measureText(text);
+    ctx.fillRect(x - (metrics.width/2 + 10), y - 20, metrics.width + 20, 30);
+    ctx.fillStyle = "white";
+    ctx.fillText(text, x, y);
+}
 
-function update() {
-    if (gameState === 'ROOM' || gameState === 'STREET') {
-        let moveX = 0, moveY = 0;
-        if (keys['w'] || keys['arrowup']) moveY = -player.speed;
-        if (keys['s'] || keys['arrowdown']) moveY = player.speed;
-        if (keys['a'] || keys['arrowleft']) moveX = -player.speed;
-        if (keys['d'] || keys['arrowright']) moveX = player.speed;
-        player.x += moveX; player.y += moveY;
+// ... (Previous drawStreet and drawStudyMode functions stay the same)
 
-        // Transition: Room to Street
-        if (gameState === 'ROOM' && player.y < 10) {
+// --- 2. INPUT HANDLING (The "E" logic) ---
+
+window.onkeydown = (e) => {
+    let k = e.key.toLowerCase();
+    keys[k] = true;
+
+    if (k === 'e') {
+        // Door Check
+        if (gameState === 'ROOM' && Math.abs(player.x - canvas.width/2) < 60 && player.y < 120) {
             gameState = 'STREET';
-            player.y = canvas.height - 50;
+            player.y = canvas.height - 100;
             spawnCritics();
         }
-    }
-
-    if (gameState === 'STREET') {
-        energy -= 0.02; // Base drain
-
-        critics.forEach(c => {
-            let dx = player.x - c.x; let dy = player.y - c.y;
-            let dist = Math.hypot(dx, dy);
-            c.x += dx/dist * 0.8; c.y += dy/dist * 0.8;
-            if (dist < 30) energy -= 0.15; // Criticism hurts!
-        });
-
-        if (girl.active) {
-            // Girl follows player with a "smooth" floaty movement
-            let targetX = player.x - 40;
-            let targetY = player.y + 10;
-            girl.x += (targetX - girl.x) * 0.05;
-            girl.y += (targetY - girl.y) * 0.05;
-            
-            // Generate sparkles
-            if (Math.random() < 0.4) {
-                girl.sparkles.push({
-                    x: girl.x + 12, y: girl.y + 12,
-                    vx: (Math.random() - 0.5) * 2,
-                    vy: (Math.random() - 0.5) * 2,
-                    life: 1.0
-                });
-            }
-            if (energy < 100) energy += 0.2; // GIRL HEALS YOU
+        // Table Check
+        else if (gameState === 'ROOM' && Math.hypot(player.x - (canvas.width - 140), player.y - 240) < 80) {
+            gameState = 'STUDYING';
         }
-    }
-}
-
-// --- 3. CLICK HANDLING ---
-
-canvas.onmousedown = (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
-    const my = (e.clientY - rect.top) * (canvas.height / rect.height);
-
-    if (gameState === 'TITLE') gameState = 'ROOM';
-
-    // Heart Button Click Check
-    if (heartBtn.visible) {
-        if (mx > heartBtn.x && mx < heartBtn.x + heartBtn.size &&
-            my > heartBtn.y && my < heartBtn.y + heartBtn.size) {
-            
-            girl.active = true;
-            girl.x = player.x;
-            girl.y = player.y + 100;
-            lovePoints += 50; // Summoning her is an act of love!
+        // Bed Check
+        else if (gameState === 'ROOM' && Math.hypot(player.x - 90, player.y - 170) < 80) {
+            energy = Math.min(100, energy + 25); // Rest gives 25% energy
+            alert("Resting... Energy +25%");
+        }
+        // Exit Study
+        else if (gameState === 'STUDYING') {
+            gameState = 'ROOM';
         }
     }
 };
 
-// ... (Rest of your helper functions like drawHUD, drawEntity, keys, etc.)
+// ... (Keep the rest of the game loop and heart button logic)

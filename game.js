@@ -26,12 +26,10 @@ let isDistracted = false;
 function drawTitle() {
     ctx.fillStyle = "#2d1b2e"; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
     ctx.fillStyle = "#ff77a8";
     ctx.font = "bold 60px 'Courier New'";
     ctx.textAlign = "center";
     ctx.fillText("AURAHEARTS", canvas.width / 2, canvas.height / 2);
-
     ctx.fillStyle = "#ffffff";
     ctx.font = "20px 'Courier New'";
     ctx.fillText("(for sammy ❤️)", canvas.width / 2, canvas.height / 2 + 50);
@@ -39,20 +37,27 @@ function drawTitle() {
 }
 
 function drawRoom() {
-    ctx.fillStyle = "#5d3a37"; // Floor
+    ctx.fillStyle = "#5d3a37"; // Wooden Floor
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Bed
+    // Bed (Left side)
     ctx.fillStyle = "#3e2723"; 
-    ctx.fillRect(50, 50, 80, 120);
+    ctx.fillRect(50, 50, 80, 140);
+    ctx.fillStyle = "#d7ccc8"; // Pillow
+    ctx.fillRect(50, 50, 80, 30);
     ctx.fillStyle = "white";
-    ctx.fillText("BED (E to Rest)", 90, 40);
+    ctx.font = "14px 'Courier New'";
+    ctx.fillText("BED (E)", 90, 40);
 
-    // Study Table
+    // Study Table (Right side)
     ctx.fillStyle = "#8d6e63";
     const tableX = canvas.width - 200, tableY = 150;
-    ctx.fillRect(tableX, tableY, 120, 70);
-    ctx.fillText("TABLE (E to Study)", tableX + 60, tableY - 10);
+    ctx.fillRect(tableX, tableY, 120, 80);
+    // Window in front of table (on the wall)
+    ctx.fillStyle = "#81d4fa"; // Sky Blue
+    ctx.fillRect(tableX + 10, tableY - 100, 100, 60);
+    ctx.strokeStyle = "white";
+    ctx.strokeRect(tableX + 10, tableY - 100, 100, 60);
 
     // Player
     ctx.fillStyle = player.color;
@@ -60,7 +65,7 @@ function drawRoom() {
     ctx.fillStyle = "#212121"; // Cap
     ctx.fillRect(player.x, player.y, player.width, 10);
 
-    // HUD (Energy/Love)
+    // HUD
     ctx.fillStyle = "white";
     ctx.textAlign = "left";
     ctx.fillText(`Energy: ${Math.floor(energy)}%`, 20, canvas.height - 40);
@@ -68,14 +73,49 @@ function drawRoom() {
 }
 
 function drawStudyMode() {
-    ctx.fillStyle = "#1a1a1a"; 
+    // Zoomed in Desk View
+    ctx.fillStyle = "#3e2723"; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // The Window in front
+    ctx.fillStyle = "#0277bd"; // Deep Blue Sky
+    ctx.fillRect(canvas.width/2 - 150, 50, 300, 150);
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 10;
+    ctx.strokeRect(canvas.width/2 - 150, 50, 300, 150);
+
+    // The Table
+    ctx.fillStyle = "#8d6e63";
+    ctx.fillRect(50, 250, canvas.width - 100, canvas.height - 250);
+
+    // Stack of Books (Left)
+    ctx.fillStyle = "#d32f2f"; ctx.fillRect(100, 300, 80, 20);
+    ctx.fillStyle = "#388e3c"; ctx.fillRect(100, 280, 80, 20);
+    ctx.fillStyle = "#1976d2"; ctx.fillRect(100, 260, 80, 20);
+
+    // Open Book (Center)
+    ctx.fillStyle = "#f5f5f5";
+    ctx.fillRect(canvas.width/2 - 60, 350, 120, 80);
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(canvas.width/2 - 60, 350, 120, 80);
+    ctx.beginPath(); // Middle fold
+    ctx.moveTo(canvas.width/2, 350); ctx.lineTo(canvas.width/2, 430); ctx.stroke();
+
+    // Phone (Right)
+    ctx.fillStyle = "#212121";
+    ctx.fillRect(canvas.width - 200, 380, 40, 70);
     if (isDistracted) {
-        ctx.translate(Math.random() * 4 - 2, Math.random() * 4 - 2);
+        ctx.fillStyle = "#00d2ff"; // Screen light
+        ctx.fillRect(canvas.width - 195, 385, 30, 60);
+    }
+
+    if (isDistracted) {
+        ctx.translate(Math.random() * 6 - 3, Math.random() * 6 - 3); // More shake
         ctx.fillStyle = "#ff5252";
         ctx.textAlign = "center";
-        ctx.fillText("TAP THE BUBBLES!", canvas.width / 2, 50);
+        ctx.font = "bold 24px 'Courier New'";
+        ctx.fillText("DISTRACTED! TAP BUBBLES", canvas.width / 2, 230);
 
         bubbles.forEach(b => {
             ctx.beginPath();
@@ -87,7 +127,7 @@ function drawStudyMode() {
     } else {
         ctx.fillStyle = "white";
         ctx.textAlign = "center";
-        ctx.fillText("Studying... (E to stop)", canvas.width / 2, 50);
+        ctx.fillText("Studying... Energy dropping...", canvas.width / 2, 230);
     }
 }
 
@@ -95,22 +135,31 @@ function drawStudyMode() {
 
 function update() {
     if (gameState === 'ROOM') {
-        // Basic Movement Logic
         if (keys['ArrowUp'] || keys['w']) player.y -= player.speed;
         if (keys['ArrowDown'] || keys['s']) player.y += player.speed;
         if (keys['ArrowLeft'] || keys['a']) player.x -= player.speed;
         if (keys['ArrowRight'] || keys['d']) player.x += player.speed;
+        
+        // Walls
+        if (player.x < 0) player.x = 0;
+        if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+        if (player.y < 0) player.y = 0;
+        if (player.y > canvas.height - player.height) player.y = canvas.height - player.height;
+
     } else if (gameState === 'STUDYING') {
         if (!isDistracted) {
-            energy -= 0.02;
-            if (Math.random() < 0.01) {
+            energy -= 0.05;
+            // Lowered chance of distraction (0.4% chance per frame)
+            if (Math.random() < 0.004) {
                 isDistracted = true;
                 bubbles = Array.from({length: 10}, () => ({
-                    x: Math.random() * 700 + 50,
-                    y: Math.random() * 500 + 50,
-                    radius: 30
+                    x: Math.random() * 600 + 100,
+                    y: Math.random() * 400 + 100,
+                    radius: 35
                 }));
             }
+        } else {
+             energy -= 0.1; // Energy drains faster when distracted!
         }
     }
 }
@@ -119,18 +168,18 @@ function update() {
 
 const keys = {};
 window.onkeydown = (e) => {
-    keys[e.key] = true;
+    keys[e.key.toLowerCase()] = true;
     if (e.key.toLowerCase() === 'e') {
         if (gameState === 'ROOM') {
-            // Distance check to table
-            const dist = Math.hypot(player.x - (canvas.width - 140), player.y - 185);
+            const tableX = canvas.width - 140, tableY = 185;
+            const dist = Math.hypot(player.x - tableX, player.y - tableY);
             if (dist < 150) gameState = 'STUDYING';
-        } else if (gameState === 'STUDYING') {
+        } else if (gameState === 'STUDYING' && !isDistracted) {
             gameState = 'ROOM';
         }
     }
 };
-window.onkeyup = (e) => keys[e.key] = false;
+window.onkeyup = (e) => keys[e.key.toLowerCase()] = false;
 
 canvas.onmousedown = (e) => {
     if (gameState === 'TITLE') gameState = 'ROOM';
@@ -143,15 +192,16 @@ canvas.onmousedown = (e) => {
             const d = Math.hypot(mx - b.x, my - b.y);
             if (d < b.radius) {
                 bubblesPopped++;
-                lovePoints += 5;
+                lovePoints += 2;
                 return false;
             }
             return true;
         });
 
-        if (bubbles.length <= 3) { // Goal reached
+        if (bubbles.length <= 3) {
             isDistracted = false;
             bubblesPopped = 0;
+            lovePoints += 10; // Bonus for refocusing
         }
     }
 };
